@@ -38,10 +38,7 @@ async def predict(file: UploadFile = File(...)):
         raise HTTPException(status_code=400, detail="La imagen está vacía.")
     try:
         image = Image.open(io.BytesIO(raw)).convert("RGB")
-    except (UnidentifiedImageError, OSError, ValueError):
-        raise HTTPException(status_code=400, detail="No se pudo leer la imagen.")
-    try:
-        if model is None:
+    if model is None:
         raise HTTPException(
             status_code=503,
             detail="El modelo de IA no está disponible."
@@ -50,8 +47,25 @@ async def predict(file: UploadFile = File(...)):
     try:
         results = model.predict(image, conf=0.50, verbose=False)
     except Exception as exc:
-        raise HTTPException(status_code=500, detail="No se pudo analizar la imagen.") from exc
+        raise HTTPException(
+            status_code=500,
+            detail="No se pudo analizar la imagen."
+        ) from exc
+
+    detections = []
+    for box in results[0].boxes:
         class_id = int(box.cls.item())
+        confidence = float(box.conf.item())
+        detections.append({
+            "class_name": str(model.names[class_id]).lower(),
+            "confidence": confidence
+        })
+
+    detections.sort(
+        key=lambda item: item["confidence"],
+        reverse=True
+    )
+    return {"detections": detections}
         confidence = float(box.conf.item())
         detections.append({"class_name": str(model.names[class_id]).lower(), "confidence": confidence})
     detections.sort(key=lambda item: item["confidence"], reverse=True)
