@@ -45,6 +45,13 @@ async def predict(file: UploadFile = File(...)):
         )
 
     try:
+    if model is None:
+        raise HTTPException(
+            status_code=503,
+            detail="El modelo de IA no está disponible."
+        )
+
+    try:
         results = model.predict(image, conf=0.50, verbose=False)
     except Exception as exc:
         raise HTTPException(
@@ -65,8 +72,4 @@ async def predict(file: UploadFile = File(...)):
         key=lambda item: item["confidence"],
         reverse=True
     )
-    return {"detections": detections}
-        confidence = float(box.conf.item())
-        detections.append({"class_name": str(model.names[class_id]).lower(), "confidence": confidence})
-    detections.sort(key=lambda item: item["confidence"], reverse=True)
-    return {"detections": detections}
+    return {"detections": detections}    
