@@ -14,7 +14,11 @@ app.add_middleware(
 
 # Modelo público DECAFIA. Solo detecta roya, daño por gorgojos defoliadores (etiqueta coco)
 # y minador. No puede identificar todas las plagas del café.
-model = YOLO("estebanr25/decafia")
+try:
+    model = YOLO("estebanr25/decafia")
+except Exception as e:
+    print(f"No se pudo cargar el modelo DECAFIA: {e}")
+    model = None
 
 @app.get("/")
 def health():
@@ -37,11 +41,16 @@ async def predict(file: UploadFile = File(...)):
     except (UnidentifiedImageError, OSError, ValueError):
         raise HTTPException(status_code=400, detail="No se pudo leer la imagen.")
     try:
+        if model is None:
+        raise HTTPException(
+            status_code=503,
+            detail="El modelo de IA no está disponible."
+        )
+
+    try:
         results = model.predict(image, conf=0.50, verbose=False)
     except Exception as exc:
         raise HTTPException(status_code=500, detail="No se pudo analizar la imagen.") from exc
-    detections = []
-    for box in results[0].boxes:
         class_id = int(box.cls.item())
         confidence = float(box.conf.item())
         detections.append({"class_name": str(model.names[class_id]).lower(), "confidence": confidence})
