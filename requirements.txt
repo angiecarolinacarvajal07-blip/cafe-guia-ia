@@ -2,4 +2,4 @@ fastapi==0.115.12
 uvicorn[standard]==0.34.0
 ultralytics==8.4.148
 pillow>=10.0.0
-huggingface-hub
+python-multipart
